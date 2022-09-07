@@ -1,11 +1,13 @@
-### Cadence Import
+# Cadence Import
 Imports a contract and that contracts dependencies recursively. Also updates your `flow.json`. The contracts import statements will also be updated to local relative paths.
-This should produce a local set of contracts in the format expected by the VSCode Cadence extension and Flow emulator.
+This should produce a local set of contracts in the format expected by the [VSCode Cadence Extension](https://github.com/onflow/vscode-cadence) and [Flow Emulator](https://github.com/onflow/flow-emulator).
 
-### Installation 
-To install, run `go install github.com/jrkhan/cadence-import`
+## Installation
+Run `go install github.com/jrkhan/cadence-import`
 
-### Usage
+Make sure you have an up to date install of the [flow-cli](https://github.com/onflow/flow-cli)
+
+## Usage
 Navigate to a empty directory for your new project.
 Run `flow init` to create your `flow.json`.
 
