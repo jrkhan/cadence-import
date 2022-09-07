@@ -20,8 +20,8 @@ var getCmd = &cobra.Command{
 			var err error
 			if e != nil {
 				err = fmt.Errorf("🛑  %v", e)
+				fmt.Print(err)
 			}
-			fmt.Print(err)
 		}()
 		imports.GetImport(imports.ReaderWriter{}, Network, args[0])
 		return nil
