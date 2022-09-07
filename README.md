@@ -1,3 +1,5 @@
+[![CI](https://github.com/jrkhan/cadence-import/actions/workflows/ci.yaml/badge.svg)](https://github.com/jrkhan/cadence-import/actions/workflows/ci.yaml)
+
 # Cadence Import
 Imports a contract and that contracts dependencies recursively. Also updates your `flow.json`. The contracts import statements will also be updated to local relative paths.
 This should produce a local set of contracts in the format expected by the [VSCode Cadence Extension](https://github.com/onflow/vscode-cadence) and [Flow Emulator](https://github.com/onflow/flow-emulator).
