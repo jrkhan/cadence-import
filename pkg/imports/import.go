@@ -105,13 +105,13 @@ func getContractByName(contracts config.Contracts) ContractByName {
 	return res
 }
 
-// getImportContractDir
+// getImportContractDir returns the default directory to be used for imports
 func getImportContractDir() string {
 	val, has := os.LookupEnv("IMPORT_DIR")
 	if has {
 		return val
 	}
-	return "./imports/"
+	return "./imports"
 }
 
 func handleErr(err error) {
@@ -153,8 +153,10 @@ func (s *SourceResolver) AddEntry(name string, network string, address string) C
 // populateRegistry will add an entry to the registry
 // this can be used if the registry did not have a contract that is a dependency of a well known contract
 func (s *SourceResolver) shimByNetwork(name string, network string, address string) ContractByNetwork {
+	importDir := getImportContractDir()
+	src := importDir + "/" + name + ".cdc"
 	return ContractByNetwork{
-		network: config.Contract{Name: name, Source: "./imports/" + name + ".cdc", Network: network, Alias: address},
+		network: config.Contract{Name: name, Source: src, Network: network, Alias: address},
 	}
 }
 
