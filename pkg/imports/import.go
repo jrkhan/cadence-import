@@ -73,7 +73,7 @@ func (i *Importer) Get(rw config.ReaderWriter, name string) error {
 		panic(loadErr)
 	}
 
-	sr := SourceResolver{cfg, byName, rw, targetCfg}
+	sr := SourceResolver{cfg, byName, rw, targetCfg, i.Verbose}
 	if i.Address != "" {
 		sr.AddEntry(name, i.Network, i.Address)
 	}
@@ -88,6 +88,7 @@ type SourceResolver struct {
 	ContractMap    ContractByName
 	Writer         config.ReaderWriter
 	TargetConfig   *config.Config
+	Verbose        bool
 }
 type ContractByName map[string]ContractByNetwork
 type ContractByNetwork map[string]config.Contract
@@ -161,6 +162,9 @@ func (s *SourceResolver) shimByNetwork(name string, network string, address stri
 // writing the file locally. We also recursively fetch the contract.
 func (s *SourceResolver) checkImports(ctx context.Context, contract config.Contract, src []byte, network string) (string, error) {
 	contractSrc := string(src)
+	if s.Verbose {
+		fmt.Println("Full contract source: \n" + contractSrc)
+	}
 	copy := contractSrc
 	p, err := parser.ParseProgram(contractSrc, nil)
 	if err != nil {
