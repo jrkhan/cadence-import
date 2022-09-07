@@ -79,8 +79,7 @@ func (i *Importer) Get(rw config.ReaderWriter, name string) error {
 	}
 	sr.getSource(ctx, name, i.Network)
 
-	composer.Save(targetCfg, getTarget())
-	return nil
+	return composer.Save(targetCfg, getTarget())
 }
 
 type SourceResolver struct {
@@ -139,7 +138,8 @@ func (s *SourceResolver) getSource(ctx context.Context, name string, network str
 	importsReplaced, err := s.checkImports(ctx, con, a.Contracts[name], network)
 	handleErr(err)
 
-	os.MkdirAll(filepath.Dir(con.Source), 0700)
+	err = os.MkdirAll(filepath.Dir(con.Source), 0700)
+	handleErr(err)
 	err = s.Writer.WriteFile(con.Source, []byte(importsReplaced), 0777)
 	handleErr(err)
 }

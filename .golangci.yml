@@ -1,0 +1,31 @@
+run:
+  timeout: 10m
+
+linters-settings:
+
+  gosec:
+    # To select a subset of rules to run.
+    # Available rules: https://github.com/securego/gosec#available-rules
+    includes:
+      - G401
+      - G402
+      - G501
+      - G502
+      - G503
+      - G505
+
+linters:
+  enable:
+    - gosec
+    - staticcheck
+
+issues:
+  exclude-rules:
+    - path: _test\.go # disable some linters on test files
+      linters:
+        - unused
+    # typecheck currently not handling the way we do function inheritance well
+    # disabling for now
+    - path: 'cmd/access/node_build/*' 
+      linters:
+        - typecheck

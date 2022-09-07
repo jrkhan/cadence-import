@@ -28,8 +28,7 @@ var getCmd = &cobra.Command{
 				fmt.Print(err)
 			}
 		}()
-		importer.Get(imports.ReaderWriter{}, contractName)
-		return nil
+		return importer.Get(imports.ReaderWriter{}, contractName)
 	},
 }
 
