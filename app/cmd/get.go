@@ -35,7 +35,7 @@ var getCmd = &cobra.Command{
 
 func init() {
 	getCmd.Flags().StringVarP(&importer.Network, "network", "n", "mainnet", "network to use to retrieve contracts")
-	getCmd.Flags().StringVarP(&importer.Address, "address", "a", "", "the address of the contract")
+	getCmd.Flags().StringVarP(&importer.Address, "address", "a", "", "the address of the contract (if not in flow.json or registry)")
 	getCmd.Flags().BoolVar(&importer.Verbose, "verbose", false, "display detailed error messaging")
 
 	rootCmd.AddCommand(getCmd)
