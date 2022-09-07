@@ -26,5 +26,5 @@ Run `cadence-import get {ContractName}` to get contracts src from the version cu
 ### Optional address as a flag
 You may also supply the network and address as flags instead of adding them to `flow.json`.
 
-`cadence-import -a 547f177b243b4d80 -n testnet TopShotMarketV3`
+`cadence-import get TopShotMarketV3 -a 547f177b243b4d80 -n testnet`
 
