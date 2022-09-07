@@ -72,8 +72,8 @@ func (i *Importer) Get(rw config.ReaderWriter, name string) error {
 	if loadErr != nil {
 		panic(loadErr)
 	}
-
-	sr := SourceResolver{cfg, byName, rw, targetCfg, i.Verbose}
+	added := map[string][]string{}
+	sr := SourceResolver{cfg, byName, rw, targetCfg, i.Verbose, added}
 	if i.Address != "" {
 		sr.AddEntry(name, i.Network, i.Address)
 	}
@@ -88,6 +88,7 @@ type SourceResolver struct {
 	Writer         config.ReaderWriter
 	TargetConfig   *config.Config
 	Verbose        bool
+	justAdded      map[string][]string // justAdded tracks the contracts added in a single invocation
 }
 type ContractByName map[string]ContractByNetwork
 type ContractByNetwork map[string]config.Contract
@@ -120,18 +121,40 @@ func handleErr(err error) {
 	}
 }
 
+func (s *SourceResolver) checkJustAdded(ctx context.Context, name string, address string) bool {
+	addresses, has := s.justAdded[name]
+	if !has {
+		s.justAdded[name] = []string{address}
+		return false
+	}
+	for _, addr := range addresses {
+		if addr == address {
+			return true
+		}
+	}
+	// TODO - need to handle the case where contract names overlap by adjusting import path
+	s.justAdded[name] = append(addresses, address)
+	return false
+}
+
 func (s *SourceResolver) getSource(ctx context.Context, name string, network string) {
-	fmt.Printf("📜  Importing source for %v from network %v\n", name, network)
+
 	for _, c := range s.ContractMap[name] {
 		s.TargetConfig.Contracts.AddOrUpdate(name, c)
 	}
 	n, err := s.RegistryConfig.Networks.ByName(network)
 	handleErr(err)
 
+	con := s.ContractMap[name][network]
+
+	if s.checkJustAdded(ctx, name, con.Alias) {
+		return
+	}
+
+	fmt.Printf("📜  Importing source for %v from network %v\n", name, network)
 	fc, err := grpc.NewClient(n.Host, gogrpc.WithTransportCredentials(insecure.NewCredentials()))
 	handleErr(err)
 
-	con := s.ContractMap[name][network]
 	a, err := fc.GetAccount(ctx, flow.HexToAddress(con.Alias))
 	handleErr(err)
 
