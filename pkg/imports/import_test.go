@@ -38,9 +38,10 @@ func TestGetImport(t *testing.T) {
 		"./registry.json": testRegistry,
 		"./flow.json":     testFlow,
 	}
-	err := GetImport(mockReaderWriter{
+	importer := Importer{Network: "testnet"}
+	err := importer.Get(mockReaderWriter{
 		files: files,
-	}, "testnet", "TopShot")
+	}, "TopShot")
 	assert.NoError(t, err)
 
 	t.Run("should have expected dependencies added", func(t *testing.T) {

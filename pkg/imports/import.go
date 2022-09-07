@@ -21,14 +21,31 @@ import (
 
 //go:embed compiled_registry.json
 var defaultRegistry []byte
+var defaultRegistryPath = "./registry.json"
+
+type Importer struct {
+	Network string
+	Address string
+	Verbose bool
+}
 
 // getRegistry gets contract info from multiple flow.json as provided by env or defaults to local flow.json
 func getRegistry() []string {
 	registry, has := os.LookupEnv("REGISTRY")
+	allFiles := []string{"./flow.json"}
 	if has {
-		return strings.Split(registry, ",")
+		allFiles = strings.Split(registry, ",")
 	}
-	return []string{"./registry.json"}
+	existingFiles := []string{}
+
+	for _, fileLocation := range allFiles {
+		_, err := os.Open(fileLocation)
+		if err == nil {
+			existingFiles = append(existingFiles, fileLocation)
+		}
+	}
+	existingFiles = append(existingFiles, defaultRegistryPath) // always should have this, even if embedded
+	return existingFiles
 }
 
 // getTarget will retrive the path to the flow.json we should write contracts to
@@ -40,7 +57,7 @@ func getTarget() string {
 	return "./flow.json"
 }
 
-func GetImport(rw config.ReaderWriter, network string, name string) error {
+func (i *Importer) Get(rw config.ReaderWriter, name string) error {
 	ctx := context.Background()
 	composer := config.NewLoader(rw)
 	composer.AddConfigParser(json.NewParser())
@@ -57,8 +74,10 @@ func GetImport(rw config.ReaderWriter, network string, name string) error {
 	}
 
 	sr := SourceResolver{cfg, byName, rw, targetCfg}
-
-	sr.getSource(ctx, name, network)
+	if i.Address != "" {
+		sr.AddEntry(name, i.Network, i.Address)
+	}
+	sr.getSource(ctx, name, i.Network)
 
 	composer.Save(targetCfg, getTarget())
 	return nil
@@ -124,6 +143,12 @@ func (s *SourceResolver) getSource(ctx context.Context, name string, network str
 	handleErr(err)
 }
 
+func (s *SourceResolver) AddEntry(name string, network string, address string) ContractByNetwork {
+	n := s.shimByNetwork(name, network, address)
+	s.ContractMap[name] = n
+	return n
+}
+
 // populateRegistry will add an entry to the registry
 // this can be used if the registry did not have a contract that is a dependency of a well known contract
 func (s *SourceResolver) shimByNetwork(name string, network string, address string) ContractByNetwork {
@@ -174,8 +199,7 @@ func (i *importReplacer) replaceImport(ctx context.Context) string {
 
 	if !has {
 		fmt.Println("no import defined for dependency " + i.importName)
-		byNetwork = i.shimByNetwork(i.importName, i.network, strings.Replace(i.onChainAddress, "0x", "", 1))
-		i.ContractMap[i.importName] = byNetwork
+		byNetwork = i.AddEntry(i.importName, i.network, strings.Replace(i.onChainAddress, "0x", "", 1))
 	}
 	val, has := byNetwork[i.network]
 	if !has {

@@ -10,7 +10,7 @@ type ReaderWriter struct {
 }
 
 func (r ReaderWriter) ReadFile(name string) ([]byte, error) {
-	if name != getRegistry()[0] {
+	if name != defaultRegistryPath {
 		return os.ReadFile(name)
 	}
 	res, err := os.ReadFile(name)
