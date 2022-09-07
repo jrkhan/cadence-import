@@ -10,7 +10,7 @@ This should produce a local set of contracts in the format expected by the [VSCo
 ### Prerequisite
 Make sure you have an up to date install of the [Flow CLI](https://github.com/onflow/flow-cli)
 ### Install with go
-Run `go install github.com/jrkhan/cadence-import`
+Run `go install github.com/jrkhan/cadence-import@v0.1.0`
 
 
 
