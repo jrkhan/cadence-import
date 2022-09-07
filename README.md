@@ -13,3 +13,7 @@ Add the name and address of at least one contract you'd like to import to `flow.
 
 Run `cadence-import get {ContractName}` to get contracts src from the version currently deployed on chain.
 
+You may also supply the network and address as flags instead of adding them to `flow.json`.
+
+`cadence-import -a 547f177b243b4d80 -n testnet TopShotMarketV3`
+
