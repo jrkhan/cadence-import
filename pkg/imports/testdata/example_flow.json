@@ -1,0 +1,69 @@
+{
+	"contracts": {
+		"FlowToken": {
+			"source": "imports/FlowToken.cdc",
+			"aliases": {
+				"emulator": "0ae53cb6e3f42a79",
+				"mainnet": "1654653399040a61",
+				"testnet": "7e60df042a9c0868"
+			}
+		},
+		"FungibleToken": {
+			"source": "./imports/FungibleToken.cdc",
+			"aliases": {
+				"emulator": "ee82856bf20e2aa6",
+				"mainnet": "f233dcee88fe0abe",
+				"testnet": "9a0766d93b6608b7"
+			}
+		},
+		"MetadataViews": {
+			"source": "./imports/MetadataViews.cdc",
+			"aliases": {
+				"mainnet": "1d7e57aa55817448",
+				"testnet": "631e88ae7f1d7c20"
+			}
+		},
+		"NonFungibleToken": {
+			"source": "./imports/NonFungibleToken.cdc",
+			"aliases": {
+				"mainnet": "1d7e57aa55817448",
+				"testnet": "631e88ae7f1d7c20"
+			}
+		},
+		"TopShot": {
+			"source": "./imports/TopShot.cdc",
+			"aliases": {
+				"mainnet": "0b2a3299cc857e29",
+				"testnet": "877931736ee77cff"
+			}
+		},
+		"TopShotLocking": {
+			"source": "./imports/TopShotLocking.cdc",
+			"aliases": {
+				"mainnet": "0b2a3299cc857e29",
+				"testnet": "877931736ee77cff"
+			}
+		}
+	},
+	"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	},
+	"accounts": {
+		"emulator-account": {
+			"address": "f8d6e0586b0a20c7",
+			"key": "f93c41dd146bf541d10417de419e62233c629a3011b8d11a1a9dd72b41186e4c"
+		}
+	},
+	"deployments": {
+		"emulator": {
+			"emulator-account": [
+				"NonFungibleToken",
+				"MetadataViews",
+				"TopShot",
+				"TopShotLocking"
+			]
+		}
+	}
+}
