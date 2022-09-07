@@ -23,7 +23,7 @@ var getCmd = &cobra.Command{
 			}
 			fmt.Print(err)
 		}()
-		imports.GetImport(Network, args[0])
+		imports.GetImport(imports.ReaderWriter{}, Network, args[0])
 		return nil
 	},
 }

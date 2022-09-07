@@ -6,10 +6,10 @@ import (
 	"os"
 )
 
-type readerWriter struct {
+type ReaderWriter struct {
 }
 
-func (r readerWriter) ReadFile(name string) ([]byte, error) {
+func (r ReaderWriter) ReadFile(name string) ([]byte, error) {
 	if name != getRegistry()[0] {
 		return os.ReadFile(name)
 	}
@@ -21,6 +21,6 @@ func (r readerWriter) ReadFile(name string) ([]byte, error) {
 	return res, nil
 }
 
-func (r readerWriter) WriteFile(name string, data []byte, perm fs.FileMode) error {
+func (r ReaderWriter) WriteFile(name string, data []byte, perm fs.FileMode) error {
 	return os.WriteFile(name, data, perm)
 }
