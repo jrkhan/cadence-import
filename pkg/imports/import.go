@@ -232,8 +232,9 @@ func (i *importReplacer) replaceImport(ctx context.Context) string {
 	}
 	val, has := byNetwork[i.network]
 	if !has {
-		fmt.Println("no import specific to environment, unable to validate address matches, using first available for " + i.importName)
-
+		fmt.Println("no import specific to environment for " + i.importName)
+		byNetwork = i.AddEntry(i.importName, i.network, strings.Replace(i.onChainAddress, "0x", "", 1))
+		val = byNetwork[i.network]
 	} else if val.Alias != i.onChainAddress {
 		fmt.Printf("unexpected location for import %s in network %s, got %s expecting %s \n", i.importName, i.network, i.onChainAddress, val.Alias)
 	}
