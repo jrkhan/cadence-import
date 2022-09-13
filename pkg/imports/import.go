@@ -23,10 +23,86 @@ import (
 var defaultRegistry []byte
 var defaultRegistryPath = "./registry.json"
 
-type Importer struct {
-	Network string
-	Address string
-	Verbose bool
+type (
+	CLIConfig = *config.Config
+	Importer  struct {
+		Network string
+		Address string
+		Verbose bool
+	}
+	SourceResolver struct {
+		*config.Loader
+		RegistryConfig CLIConfig
+		ContractMap    ContractByName
+		Writer         config.ReaderWriter
+		TargetConfig   CLIConfig
+		TargetPath     string
+		Verbose        bool
+		justAdded      map[string][]string // justAdded tracks the contracts added in a single invocation
+	}
+	importReplacer struct {
+		*SourceResolver
+		SourceDirectory string
+		currentSrc      string
+		onChainAddress  string
+		importName      string
+		network         string
+	}
+	ContractByName    map[string]ContractByNetwork
+	ContractByNetwork map[string]config.Contract
+)
+
+// Get is the expected entry point for the importer
+func (i *Importer) Get(rw config.ReaderWriter, name string) (err error) {
+	ctx := context.Background()
+
+	defer func() {
+		if err != nil || i.Verbose {
+			return // do not recover from panic, print stack trace
+		}
+
+		if panicErr := recover(); panicErr != nil {
+			err = fmt.Errorf("🛑  %w", panicErr.(error))
+		}
+	}()
+
+	r := NewResolver(rw, i.Verbose, getRegistry(), getTarget())
+	if i.Address != "" {
+		r.AddEntry(name, i.Network, i.Address)
+	}
+	// get the source files and populate our in memory version of flow.json
+	r.GetSource(ctx, name, i.Network)
+	r.MustSave()
+	fmt.Printf("🟢  Successfully imported %v contracts!", len(r.justAdded))
+	return
+}
+
+func NewResolver(rw config.ReaderWriter, verbose bool, registryPath []string, targetPath string) *SourceResolver {
+	configLoader := config.NewLoader(rw)
+	configLoader.AddConfigParser(json.NewParser())
+	sr := &SourceResolver{Loader: configLoader, Writer: rw, Verbose: verbose}
+	sr.justAdded = map[string][]string{}
+	sr.MustLoadRegistry(registryPath)
+	sr.MustLoadFlowConfig(targetPath)
+	return sr
+}
+
+func (s *SourceResolver) MustLoadRegistry(paths []string) {
+	cfg, loadErr := s.Load(paths)
+	if loadErr != nil {
+		panic(fmt.Errorf("error while loading configuration from %v: %w", paths, loadErr))
+	}
+	s.RegistryConfig = cfg
+	s.ContractMap = getContractByName(cfg.Contracts)
+}
+
+func (s *SourceResolver) MustLoadFlowConfig(configPath string) {
+	targetCfg, loadErr := s.Load([]string{configPath})
+	if loadErr != nil {
+		panic(fmt.Errorf("error while loading configuration from %v: %w", targetCfg, loadErr))
+	}
+	s.TargetConfig = targetCfg
+	s.TargetPath = configPath
 }
 
 // getRegistry gets contract info from multiple flow.json as provided by env or defaults to local flow.json
@@ -57,41 +133,12 @@ func getTarget() string {
 	return "./flow.json"
 }
 
-func (i *Importer) Get(rw config.ReaderWriter, name string) error {
-	ctx := context.Background()
-	composer := config.NewLoader(rw)
-	composer.AddConfigParser(json.NewParser())
-	cfg, loadErr := composer.Load(getRegistry())
-
-	if loadErr != nil {
-		panic(loadErr)
+func (s *SourceResolver) MustSave() {
+	err := s.Loader.Save(s.TargetConfig, s.TargetPath)
+	if err != nil {
+		panic(fmt.Errorf("error while saving config to path %v: %w", s.TargetPath, err))
 	}
-	byName := getContractByName(cfg.Contracts)
-
-	targetCfg, loadErr := composer.Load([]string{getTarget()})
-	if loadErr != nil {
-		panic(loadErr)
-	}
-	added := map[string][]string{}
-	sr := SourceResolver{cfg, byName, rw, targetCfg, i.Verbose, added}
-	if i.Address != "" {
-		sr.AddEntry(name, i.Network, i.Address)
-	}
-	sr.getSource(ctx, name, i.Network)
-
-	return composer.Save(targetCfg, getTarget())
 }
-
-type SourceResolver struct {
-	RegistryConfig *config.Config
-	ContractMap    ContractByName
-	Writer         config.ReaderWriter
-	TargetConfig   *config.Config
-	Verbose        bool
-	justAdded      map[string][]string // justAdded tracks the contracts added in a single invocation
-}
-type ContractByName map[string]ContractByNetwork
-type ContractByNetwork map[string]config.Contract
 
 func getContractByName(contracts config.Contracts) ContractByName {
 	res := ContractByName{}
@@ -137,7 +184,7 @@ func (s *SourceResolver) checkJustAdded(ctx context.Context, name string, addres
 	return false
 }
 
-func (s *SourceResolver) getSource(ctx context.Context, name string, network string) {
+func (s *SourceResolver) GetSource(ctx context.Context, name string, network string) {
 
 	for _, c := range s.ContractMap[name] {
 		s.TargetConfig.Contracts.AddOrUpdate(name, c)
@@ -146,7 +193,12 @@ func (s *SourceResolver) getSource(ctx context.Context, name string, network str
 	handleErr(err)
 
 	con := s.ContractMap[name][network]
-
+	if s.Verbose {
+		fmt.Printf("🔍  name: %v, network: %v, map: %v", name, network, con)
+	}
+	if con.Alias == "" {
+		handleErr(fmt.Errorf("no contract address defined for %v on network %v", name, network))
+	}
 	if s.checkJustAdded(ctx, name, con.Alias) {
 		return
 	}
@@ -156,6 +208,7 @@ func (s *SourceResolver) getSource(ctx context.Context, name string, network str
 	handleErr(err)
 
 	a, err := fc.GetAccount(ctx, flow.HexToAddress(con.Alias))
+
 	handleErr(err)
 
 	importsReplaced, err := s.checkImports(ctx, con, a.Contracts[name], network)
@@ -214,20 +267,11 @@ func (s *SourceResolver) checkImports(ctx context.Context, contract config.Contr
 	return copy, nil
 }
 
-type importReplacer struct {
-	*SourceResolver
-	SourceDirectory string
-	currentSrc      string
-	onChainAddress  string
-	importName      string
-	network         string
-}
-
 func (i *importReplacer) replaceImport(ctx context.Context) string {
 	byNetwork, has := i.ContractMap[i.importName]
 
 	if !has {
-		fmt.Println("no import defined for dependency " + i.importName)
+		fmt.Println("🔍  No import defined for dependency " + i.importName)
 		byNetwork = i.AddEntry(i.importName, i.network, strings.Replace(i.onChainAddress, "0x", "", 1))
 	}
 	val, has := byNetwork[i.network]
@@ -244,8 +288,8 @@ func (i *importReplacer) replaceImport(ctx context.Context) string {
 	relPath, err := filepath.Rel(i.SourceDirectory, val.Source)
 	handleErr(err)
 	formatted := fmt.Sprintf(`"%v"`, relPath)
-	fmt.Printf("replacing %v with %v\n", "0x"+i.onChainAddress, formatted)
+	fmt.Printf("⛓   Replacing %v with %v\n", "0x"+i.onChainAddress, formatted)
 	copy := strings.Replace(i.currentSrc, "0x"+i.onChainAddress, formatted, 1)
-	i.getSource(ctx, i.importName, i.network)
+	i.GetSource(ctx, i.importName, i.network)
 	return copy
 }
